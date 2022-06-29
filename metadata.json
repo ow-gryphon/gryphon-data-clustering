@@ -1,9 +1,9 @@
 {
-    "display_name": "",
-    "command": "",
+    "display_name": "Data clustering",
+    "command": "generate",
     "dependencies": [],
 
-    "keywords": [],
+    "keywords": ["clustering", "cluster", "unsupervised", "unsupervised learning"],
     "methodology": [],
     "topic": [],
 
