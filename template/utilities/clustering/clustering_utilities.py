@@ -1,45 +1,51 @@
-from sklearn import cluster, metrics
+import random
+
 import numpy as np
+import pandas as pd
+from sklearn import metrics
 
 
-def standardize(frame, variables, type, suffix = None):
-    '''
+def standardize(frame, variables, std_type, suffix=None):
+    """
     Standardize numerical variables in dataset
+
     :param frame: pandas dataframe
     :param variables: list of numerical variables to standardize
-    :param type: type of standardization: 'standardize', 'scale', 'demean', '[0,1]','[-1,1]
+    :param std_type: type of standardization: 'standardize', 'scale', 'demean', '[0,1]','[-1,1]
     :param suffix: suffix for new variables. If None, will use '_std','_scale', '_center', '_unit', '_unit2'
+
     :return: pandas dataframe with new columns
-    '''
+    """
 
     new_columns = frame[variables]
     orig_names = new_columns.columns.values
+    proposed_names = []
 
-    if type == "standardize":
+    if std_type == "standardize":
         new_columns = (new_columns - new_columns.mean()) / new_columns.std()
         if suffix is None:
             proposed_names = ["{}_std".format(name) for name in new_columns.columns.values]
         else:
             proposed_names = ["{}{}".format(name, suffix) for name in new_columns.columns.values]
-    elif type == "scale":
+    elif std_type == "scale":
         new_columns = new_columns / new_columns.std()
         if suffix is None:
             proposed_names = ["{}_scale".format(name) for name in new_columns.columns.values]
         else:
             proposed_names = ["{}{}".format(name, suffix) for name in new_columns.columns.values]
-    elif type == "demean":
+    elif std_type == "demean":
         new_columns = new_columns - new_columns.mean()
         if suffix is None:
             proposed_names = ["{}_center".format(name) for name in new_columns.columns.values]
         else:
             proposed_names = ["{}{}".format(name, suffix) for name in new_columns.columns.values]
-    elif type == "[0,1]":
+    elif std_type == "[0,1]":
         new_columns = (new_columns - new_columns.min()) / (new_columns.max() - new_columns.min())
         if suffix is None:
             proposed_names = ["{}_unit".format(name) for name in new_columns.columns.values]
         else:
             proposed_names = ["{}{}".format(name, suffix) for name in new_columns.columns.values]
-    elif type == "[-1,1]":
+    elif std_type == "[-1,1]":
         new_columns = 2*(new_columns - new_columns.min()) / (new_columns.max() - new_columns.min()) - 1
         if suffix is None:
             proposed_names = ["{}_unit2".format(name) for name in new_columns.columns.values]
@@ -51,8 +57,7 @@ def standardize(frame, variables, type, suffix = None):
     new_frame = pd.concat([frame, new_columns], axis='columns')
 
     return new_frame
-    
-    
+
     
 def generate_column_name(proposed_name, frame):
     """
@@ -71,10 +76,10 @@ def generate_column_name(proposed_name, frame):
         proposed_name = "{}_{}".format(orig_name, num)
 
     return proposed_name
-    
-    
-    
-def score_all(frame, predicted, arguments = {}, exhaustive = False):
+
+
+# noinspection PyDefaultArgument
+def score_all(frame, predicted, arguments=dict(), exhaustive=False):
     """
     Computes the cluster performance metrics on data without ground truths
 
@@ -95,7 +100,7 @@ def score_all(frame, predicted, arguments = {}, exhaustive = False):
     if all(nan_index):
         return {}
 
-    #if any(nan_index):
+    # if any(nan_index):
     #    x_values = x_values.loc[~nan_index, :]
     #    y_pred = y_pred[~nan_index]
 
@@ -118,10 +123,11 @@ def score_all(frame, predicted, arguments = {}, exhaustive = False):
             try:
                 if exhaustive or nobs <= size_threshold:
                     score['silhouette'] = metrics.silhouette_score(x_values, y_pred, **this_kwargs)
-                    score['calinski_harabaz'] = metrics.calinski_harabaz_score(x_values, y_pred)
+                    score['calinski_harabaz'] = metrics.calinski_harabasz_score(x_values, y_pred)
+
                 else:
-                    if nobs <= 10*size_threshold:
-                        num_loop = np.floor(nobs / size_threshold)
+                    if nobs <= 10 * size_threshold:
+                        num_loop = int(np.floor(nobs / size_threshold))
                     else:
                         num_loop = 10
                     sil_score = 0
@@ -130,21 +136,23 @@ def score_all(frame, predicted, arguments = {}, exhaustive = False):
                     #       manual dataset sampling is used
 
                     for loop in range(num_loop):
-                        use_seed = (1+loop) * seed_multiplier # Set the seed value
+                        use_seed = (1 + loop) * seed_multiplier  # Set the seed value
                         random.seed(use_seed)
                         sampled_index = random.sample(range(nobs), size_threshold)
 
-                        sil_score += metrics.silhouette_score(x_values.iloc[sampled_index,:], y_pred[sampled_index],
+                        sil_score += metrics.silhouette_score(x_values.iloc[sampled_index, :], y_pred[sampled_index],
                                                               **this_kwargs)
-                        cal_score += metrics.calinski_harabaz_score(x_values.iloc[sampled_index,:],
+                        cal_score += metrics.calinski_harabaz_score(x_values.iloc[sampled_index, :],
                                                                     y_pred[sampled_index])
 
                     score['silhouette'] = sil_score / num_loop
                     score['calinski_harabaz'] = cal_score / num_loop
 
-            except:
-                score['silhouette'] = "N/A"
-                score['calinski_harabaz'] = "N/A"
+            except Exception as e:
+                raise e
+                score['silhouette'] = np.nan
+                score['calinski_harabaz'] = np.nan
+
         else:
             try:
                 if exhaustive or nobs <= size_threshold:
@@ -152,7 +160,7 @@ def score_all(frame, predicted, arguments = {}, exhaustive = False):
                     score['calinski_harabaz'] = metrics.calinski_harabaz_score(x_values, y_pred)
                 else:
                     if nobs <= 10 * size_threshold:
-                        num_loop = np.floor(nobs / size_threshold)
+                        num_loop = int(np.floor(nobs / size_threshold))
                     else:
                         num_loop = 10
                     sil_score = 0
@@ -165,18 +173,24 @@ def score_all(frame, predicted, arguments = {}, exhaustive = False):
                         sil_score += metrics.silhouette_score(x_values.iloc[sampled_index, :],
                                                               y_pred[sampled_index],
                                                               metric='euclidean')
-                        cal_score += metrics.calinski_harabaz_score(x_values.iloc[sampled_index, :],
-                                                                    y_pred[sampled_index])
+                        cal_score += metrics.calinski_harabasz_score(
+                            x_values.iloc[sampled_index, :],
+                            y_pred[sampled_index]
+                        )
 
                     score['silhouette'] = sil_score / num_loop
                     score['calinski_harabaz'] = cal_score / num_loop
-            except:
-                score['silhouette'] = "N/A"
-                score['calinski_harabaz'] = "N/A"
+
+            except Exception as e:
+                raise e
+                score['silhouette'] = np.nan
+                score['calinski_harabaz'] = np.nan
 
     return score
 
-def score_all_labeled(frame, predicted, target, arguments = {}):
+
+# noinspection PyDefaultArgument
+def score_all_labeled(frame, predicted, target, arguments={}):
     """
     Computes the cluster performance metrics on data with ground truths
 
@@ -184,6 +198,7 @@ def score_all_labeled(frame, predicted, target, arguments = {}):
     :param predicted: Prediction series
     :param target: Ground truth series
     :param arguments: Dictionary containing the optional **kwargs for each test
+
     :return: Dictionary of performance metrics
     """
 
@@ -195,6 +210,7 @@ def score_all_labeled(frame, predicted, target, arguments = {}):
     nan_index = np.isnan(y_pred) | np.isnan(y_act)
     if all(nan_index):
         return {}
+
     if any(nan_index):
         x_values = x_values.loc[~nan_index,:]
         y_pred = y_pred[~nan_index]
@@ -206,7 +222,7 @@ def score_all_labeled(frame, predicted, target, arguments = {}):
     else:
         multiple_cluster = True
 
-    score_label = {}
+    score_label = dict()
     # Adjusted Rand Score - no optional arguments
     score_label['adj_rand'] = metrics.adjusted_rand_score(y_act, y_pred)
 
