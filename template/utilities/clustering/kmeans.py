@@ -9,97 +9,155 @@ from . import visualize_clusters
 from .clustering_utilities import generate_column_name, score_all
 
 
-def execute_k_means(dataset, variables, num_clusters, standardize_vars=False, generate_charts=True, **kwargs):
-    """
-    Create a K-means model, fit it with data, and predict clusters on the data
+class KMeansClustering:
 
-    :param dataset: dataset to operate on
-    :param variables: variables to operate on
-    :param num_clusters: number of clusters for KMeans algorithm, default to 2
-    :param standardize_vars: yes/no depending on standardization param
-    :param generate_charts: Whether to generate plots or not
+    @classmethod
+    def execute_k_means(cls, dataset, variables, num_clusters,
+                        standardize_vars=False, generate_charts=True, save_results_to_excel=False,
+                        **kwargs):
+        """
+        Create a K-means model, fit it with data, and predict clusters on the data
 
-    :return: tuple of (fitted k-means-extension model with summary information saved, warning_info)
-    """
+        :param dataset: dataset to operate on
+        :param variables: variables to operate on
+        :param num_clusters: number of clusters for KMeans algorithm, default to 2
+        :param standardize_vars: yes/no depending on standardization param
+        :param generate_charts: Whether to generate plots or not
+        :param save_results_to_excel: Whether to save the clustering information into an excel file
 
-    if standardize_vars:
-        scalar = StandardScaler().fit(dataset[variables])
-        use_data = pd.DataFrame(scalar.transform(dataset[variables].dropna()), columns=variables)
+        :return: tuple of (fitted k-means-extension model with summary information saved, warning_info)
+        """
 
-    else:
-        use_data = dataset[variables].dropna()
+        if standardize_vars:
+            scalar = StandardScaler().fit(dataset[variables])
+            use_data = pd.DataFrame(scalar.transform(dataset[variables].dropna()), columns=variables)
 
-    # Create a model based on loaded_dataset (need col names to be string)
-    k_means_model = KMeans(n_clusters=num_clusters, **kwargs)
+        else:
+            use_data = dataset[variables].dropna()
 
-    # Fit the model
-    fit_model = k_means_model.fit(use_data)
+        # Create a model based on loaded_dataset (need col names to be string)
+        k_means_model = KMeans(n_clusters=num_clusters, **kwargs)
 
-    # Predict inline
-    new_variable_name = generate_column_name("Cluster_assigned", use_data)
+        # Fit the model
+        fit_model = k_means_model.fit(use_data)
 
-    prediction = fit_model.predict(use_data.reset_index(drop=True))
-    use_data[new_variable_name] = prediction
+        # Predict inline
+        new_variable_name = generate_column_name("Cluster_assigned", use_data)
 
-    pd_centroids = pd.DataFrame(fit_model.cluster_centers_)
-    pd_centroids.columns = variables
-    pd_centroids["Cluster Number"] = pd_centroids.index + 1
+        prediction = fit_model.predict(use_data.reset_index(drop=True))
+        use_data[new_variable_name] = prediction
 
-    # Set number of observations in each cluster
-    cluster_n = visualize_clusters.num_clusters_df(use_data, new_variable_name)
+        pd_centroids = pd.DataFrame(fit_model.cluster_centers_)
+        pd_centroids.columns = variables
+        pd_centroids["Cluster Number"] = pd_centroids.index + 1
 
-    # Set train metrics
-    scores = score_all(use_data.drop(columns=new_variable_name), use_data[new_variable_name])
+        # Set number of observations in each cluster
+        cluster_n = visualize_clusters.num_clusters_df(use_data, new_variable_name)
 
-    output = {
-        "model": fit_model,
-        "data": use_data,
-        "centroids": pd_centroids,
-        "cluster_n": cluster_n,
-        "scores": scores
-    }
+        # Set train metrics
+        scores = score_all(use_data.drop(columns=new_variable_name), use_data[new_variable_name])
 
-    if generate_charts:
-        # Sending model prediction to get plot information
-        cluster_plot, plot_info = visualize_clusters.tool_plot(variables, use_data, new_variable_name)
+        output = {
+            "model": fit_model,
+            "data": use_data,
+            "centroids": pd_centroids,
+            "cluster_n": cluster_n,
+            "scores": scores
+        }
 
-        # create factor plot
-        g = visualize_clusters.get_factor_plot(use_data, new_variable_name)
+        if generate_charts:
+            # Sending model prediction to get plot information
+            cluster_plot, plot_info = visualize_clusters.tool_plot(variables, use_data, new_variable_name)
 
-        output['cluster_plot'] = cluster_plot
-        output['cluster_plot_info'] = plot_info
-        output['factor_plot'] = g
+            # create factor plot
+            g = visualize_clusters.get_factor_plot(use_data, new_variable_name)
 
-    return output
+            output['cluster_plot'] = cluster_plot
+            output['cluster_plot_info'] = plot_info
+            output['factor_plot'] = g
 
+            if save_results_to_excel:
+                cls.to_excel(output)
 
-def k_means_range(dataset: pd.DataFrame, variables: List[str],
-                  min_clusters=2, max_clusters=5, standardize_vars=False, generate_charts=True, **kwargs):
-    """
-    Create a K-means model, fit it with data, and predict clusters on the data
+        return output
 
-    :param dataset: dataset to operate on
-    :param variables: variables to operate on
-    :param min_clusters: minimum number of clusters for KMeans algorithm, default to 2
-    :param max_clusters: maximum number of clusters for KMeans algorithm, default to 5
-    :param standardize_vars: yes/no depending on standardization param
-    :param generate_charts: Whether to generate plots or not
+    @classmethod
+    def k_means_range(cls, dataset: pd.DataFrame, variables: List[str],
+                      min_clusters=2, max_clusters=5, standardize_vars=False, generate_charts=True,
+                      save_results_to_excel=False, **kwargs):
+        """
+        Create a K-means model, fit it with data, and predict clusters on the data
 
-    :return: Warning_info for any errors in the run, and also saves a .json with summary information
-    """
+        :param dataset: dataset to operate on
+        :param variables: variables to operate on
+        :param min_clusters: minimum number of clusters for KMeans algorithm, default to 2
+        :param max_clusters: maximum number of clusters for KMeans algorithm, default to 5
+        :param standardize_vars: yes/no depending on standardization param
+        :param generate_charts: Whether to generate plots or not
+        :param save_results_to_excel: Whether to save the clustering information into an excel file
 
-    all_models = {}
-    
-    for num_clusters in range(min_clusters, max_clusters + 1):
-        
-        print(f"Working on {num_clusters} clusters")
-    
-        k_means_model_outputs = execute_k_means(
-            dataset, variables, num_clusters,
-            standardize_vars=standardize_vars,
-            generate_charts=generate_charts,
-            **kwargs
-        )
-        all_models[num_clusters] = k_means_model_outputs
-        
-    return all_models
+        :return: Warning_info for any errors in the run, and also saves a .json with summary information
+        """
+
+        all_models = {}
+
+        for num_clusters in range(min_clusters, max_clusters + 1):
+
+            print(f"Working on {num_clusters} clusters")
+
+            k_means_model_outputs = cls.execute_k_means(
+                dataset, variables, num_clusters,
+                standardize_vars=standardize_vars,
+                generate_charts=generate_charts,
+                save_results_to_excel=False,
+                **kwargs
+            )
+            all_models[num_clusters] = k_means_model_outputs
+
+        if save_results_to_excel:
+            cls.to_excel_range(all_models)
+
+        return all_models
+
+    @staticmethod
+    def to_excel(result_dict: dict, file_name: str = None, save_training_data=False):
+
+        if file_name is None:
+            file_name = f"clustering_result.xlsx"
+
+        data = result_dict["data"]
+        centroids = result_dict["centroids"]
+        scores = pd.DataFrame([result_dict["scores"]])
+
+        with pd.ExcelWriter(file_name) as writer:
+            if save_training_data:
+                data.to_excel(writer, sheet_name='clustered_data', index=False)
+
+            centroids.to_excel(writer, sheet_name='centroids', index=False)
+            scores.to_excel(writer, sheet_name='scores', index=False)
+
+    @classmethod
+    def to_excel_range(cls, results: dict, save_training_data=False):
+        all_scores = []
+
+        with pd.ExcelWriter(f"clustering_result_centroids.xlsx") as writer:
+
+            for cluster_num, result in results.items():
+                data = result["data"]
+                centroids = result["centroids"]
+                scores = result["scores"]
+                scores["n_clusters"] = cluster_num
+                all_scores.append(scores)
+
+                if save_training_data:
+                    data.to_excel(writer, sheet_name=f'clustered_data_{cluster_num}_clusters', index=False)
+
+                centroids.to_excel(writer, sheet_name=f'centroids_{cluster_num}_clusters', index=False)
+
+            pd.DataFrame(all_scores).to_excel(writer, sheet_name='scores', index=False)
+
+            # cls.to_excel(
+            #     data,
+            #     file_name=f"clustering_result_{cluster_num}_centroids.xlsx",
+            #     save_training_data=save_training_data
+            # )
