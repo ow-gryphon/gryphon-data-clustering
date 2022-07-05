@@ -159,12 +159,12 @@ def slice_3d(frame, x, y, z, cluster=None, max_points=1000, style="scatter"):
     """
 
     # Check that variables exists in dataframe
-    assert x in frame.columns, "{feat} not in data frame".format(feat=x)
-    assert y in frame.columns, "{feat} not in data frame".format(feat=y)
-    assert z in frame.columns, "{feat} not in data frame".format(feat=z)
+    assert x in frame.columns, f"Column \"{x}\" not in data frame"
+    assert y in frame.columns, f"Column \"{y}\" not in data frame"
+    assert z in frame.columns, f"Column \"{z}\" not in data frame"
 
     if cluster is not None:
-        assert cluster in frame.columns, "{feat} not in data frame".format(feat=cluster)
+        assert cluster in frame.columns, f"Column \"{cluster}\" not in data frame"
         frame[cluster].fillna(-1, inplace=True)  # NA get their own cluster label: -1
         plot_data = frame[[x, y, z, cluster]].dropna(axis=0, how='any')
         if plot_data.shape[0] > max_points:
@@ -177,12 +177,16 @@ def slice_3d(frame, x, y, z, cluster=None, max_points=1000, style="scatter"):
         if plot_data.shape[0] > max_points:
             plot_data = plot_data.sample(max_points)  # To be updated to stratified sample
 
-    fig = plt.figure(figsize=(10, 10))
+    fig = plt.figure(figsize=(15, 15))
     ax = None
 
     if style == "scatter":
         ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(plot_data.iloc[:, 0], plot_data.iloc[:, 1], plot_data.iloc[:, 2], c=plot_data.iloc[:, 3], s=60)
+
+        scatter = ax.scatter(plot_data.iloc[:, 0], plot_data.iloc[:, 1], plot_data.iloc[:, 2],
+                             c=plot_data.iloc[:, 3], s=60, cmap="tab10")
+
+        ax.legend(*scatter.legend_elements(prop="colors"), title="Cluster")
 
     elif style == "density":
         print("https://stackoverflow.com/questions/25286811/how-to-plot-a-3d-density-map-in-python-with-matplotlib")
@@ -450,3 +454,35 @@ def get_factor_plot(data, new_variable_name):
     g.set_xticklabels(rotation=45, ha="right")
 
     return g
+
+
+def get_elbow_plot(scores: pd.DataFrame):
+    """
+    Function that plots the results clustering scores versus the number of clusters used.
+    Useful for determining the number of clusters for algorithms with a priori defined
+    number of clusters (i.e. K-Means)
+
+    :param scores: A pandas DataFrame where each of the columns represents some clustering score
+        and each line is related to a certain number of clusters considered.
+        The DataFrame should have also one mandatory column called n_clusters.
+
+    :return: None
+    """
+    assert "n_clusters" in scores.columns, "Required column \"n_clusters\" is not present in the DataFrame"
+
+    n_clusters = scores["n_clusters"]
+    metrics = scores.drop(columns=["n_clusters"])
+
+    fig, axis = plt.subplots(1, len(metrics.columns), figsize=(24, 7), sharex='all')
+    fig.suptitle("Metrics vs Number of clusters")
+
+    for m, ax in zip(metrics, axis):
+
+        ax.plot(n_clusters, scores[m])
+        ax.scatter(n_clusters, scores[m])
+
+        ax.set_title(f"Metric: {m}")
+        ax.set_ylabel("Metric score")
+        ax.set_xlabel("Number of clusters")
+        ax.set_xticks(n_clusters)
+        ax.grid()

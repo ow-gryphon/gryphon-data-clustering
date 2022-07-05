@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import time
+from pathlib import Path
 from typing import List
 
 import pandas as pd
@@ -14,6 +16,7 @@ class KMeansClustering:
     @classmethod
     def execute_k_means(cls, dataset, variables, num_clusters,
                         standardize_vars=False, generate_charts=True, save_results_to_excel=False,
+                        output_path=Path.cwd() / "outputs",
                         **kwargs):
         """
         Create a K-means model, fit it with data, and predict clusters on the data
@@ -24,6 +27,7 @@ class KMeansClustering:
         :param standardize_vars: yes/no depending on standardization param
         :param generate_charts: Whether to generate plots or not
         :param save_results_to_excel: Whether to save the clustering information into an excel file
+        :param output_path: Path used to save the outputs of the function
 
         :return: tuple of (fitted k-means-extension model with summary information saved, warning_info)
         """
@@ -77,13 +81,14 @@ class KMeansClustering:
             output['factor_plot'] = g
 
             if save_results_to_excel:
-                cls.to_excel(output)
+                cls.to_excel(output, output_path=output_path)
 
         return output
 
     @classmethod
     def k_means_range(cls, dataset: pd.DataFrame, variables: List[str],
                       min_clusters=2, max_clusters=5, standardize_vars=False, generate_charts=True,
+                      output_path: Path = Path.cwd() / "outputs",
                       save_results_to_excel=False, **kwargs):
         """
         Create a K-means model, fit it with data, and predict clusters on the data
@@ -95,6 +100,7 @@ class KMeansClustering:
         :param standardize_vars: yes/no depending on standardization param
         :param generate_charts: Whether to generate plots or not
         :param save_results_to_excel: Whether to save the clustering information into an excel file
+        :param output_path: Path used to save the outputs of the function
 
         :return: Warning_info for any errors in the run, and also saves a .json with summary information
         """
@@ -110,6 +116,7 @@ class KMeansClustering:
                 standardize_vars=standardize_vars,
                 generate_charts=generate_charts,
                 save_results_to_excel=False,
+                output_path=output_path,
                 **kwargs
             )
             all_models[num_clusters] = k_means_model_outputs
@@ -117,19 +124,29 @@ class KMeansClustering:
         if save_results_to_excel:
             cls.to_excel_range(all_models)
 
+        if generate_charts:
+            all_scores = []
+
+            for cluster_num, result in all_models.items():
+                scores = result["scores"]
+                all_scores.append(scores)
+
+            visualize_clusters.get_elbow_plot(scores=pd.DataFrame(all_scores))
+
         return all_models
 
     @staticmethod
-    def to_excel(result_dict: dict, file_name: str = None, save_training_data=False):
+    def to_excel(result_dict: dict, file_name: str = None, save_training_data=False, output_path=Path.cwd()):
+        timestamp = time.strftime("%Y%m%d_%Hh%Mm%Ss", time.localtime())
 
         if file_name is None:
-            file_name = f"clustering_result.xlsx"
+            file_name = f"clustering_result_{timestamp}.xlsx"
 
         data = result_dict["data"]
         centroids = result_dict["centroids"]
         scores = pd.DataFrame([result_dict["scores"]])
 
-        with pd.ExcelWriter(file_name) as writer:
+        with pd.ExcelWriter(output_path / file_name) as writer:
             if save_training_data:
                 data.to_excel(writer, sheet_name='clustered_data', index=False)
 
@@ -137,10 +154,14 @@ class KMeansClustering:
             scores.to_excel(writer, sheet_name='scores', index=False)
 
     @classmethod
-    def to_excel_range(cls, results: dict, save_training_data=False):
+    def to_excel_range(cls, results: dict, save_training_data=False, output_path=Path.cwd()):
         all_scores = []
 
-        with pd.ExcelWriter(f"clustering_result_centroids.xlsx") as writer:
+        timestamp = time.strftime("%Y%m%d_%Hh%Mm%Ss", time.localtime())
+
+        file_name = f"multiple_clustering_result_{timestamp}.xlsx"
+
+        with pd.ExcelWriter(output_path / file_name) as writer:
 
             for cluster_num, result in results.items():
                 data = result["data"]
@@ -155,9 +176,3 @@ class KMeansClustering:
                 centroids.to_excel(writer, sheet_name=f'centroids_{cluster_num}_clusters', index=False)
 
             pd.DataFrame(all_scores).to_excel(writer, sheet_name='scores', index=False)
-
-            # cls.to_excel(
-            #     data,
-            #     file_name=f"clustering_result_{cluster_num}_centroids.xlsx",
-            #     save_training_data=save_training_data
-            # )
