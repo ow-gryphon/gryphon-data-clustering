@@ -486,3 +486,5 @@ def get_elbow_plot(scores: pd.DataFrame):
         ax.set_xlabel("Number of clusters")
         ax.set_xticks(n_clusters)
         ax.grid()
+
+    return fig

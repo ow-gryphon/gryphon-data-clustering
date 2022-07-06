@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 from typing import List
 
+import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
@@ -16,7 +17,7 @@ class KMeansClustering:
     @classmethod
     def execute_k_means(cls, dataset, variables, num_clusters,
                         standardize_vars=False, generate_charts=True, save_results_to_excel=False,
-                        output_path=Path.cwd() / "outputs",
+                        output_path=Path.cwd() / "outputs", export_charts=False,
                         **kwargs):
         """
         Create a K-means model, fit it with data, and predict clusters on the data
@@ -83,13 +84,17 @@ class KMeansClustering:
             if save_results_to_excel:
                 cls.to_excel(output, output_path=output_path)
 
+            if export_charts:
+                cls.export_plot(output['cluster_plot'], prefix="clusters", output_path=output_path)
+                cls.export_plot(output['factor_plot'], prefix="factors", output_path=output_path)
+
         return output
 
     @classmethod
     def k_means_range(cls, dataset: pd.DataFrame, variables: List[str],
                       min_clusters=2, max_clusters=5, standardize_vars=False, generate_charts=True,
                       output_path: Path = Path.cwd() / "outputs",
-                      save_results_to_excel=False, **kwargs):
+                      save_results_to_excel=False, export_charts=False, **kwargs):
         """
         Create a K-means model, fit it with data, and predict clusters on the data
 
@@ -101,6 +106,7 @@ class KMeansClustering:
         :param generate_charts: Whether to generate plots or not
         :param save_results_to_excel: Whether to save the clustering information into an excel file
         :param output_path: Path used to save the outputs of the function
+        :param export_charts: Whether to save plots to disc or not
 
         :return: Warning_info for any errors in the run, and also saves a .json with summary information
         """
@@ -115,8 +121,9 @@ class KMeansClustering:
                 dataset, variables, num_clusters,
                 standardize_vars=standardize_vars,
                 generate_charts=generate_charts,
-                save_results_to_excel=False,
                 output_path=output_path,
+                save_results_to_excel=False,
+                export_charts=False,
                 **kwargs
             )
             all_models[num_clusters] = k_means_model_outputs
@@ -131,9 +138,25 @@ class KMeansClustering:
                 scores = result["scores"]
                 all_scores.append(scores)
 
-            visualize_clusters.get_elbow_plot(scores=pd.DataFrame(all_scores))
+            elbow_plot = visualize_clusters.get_elbow_plot(scores=pd.DataFrame(all_scores))
+
+            if export_charts:
+                cls.export_plot(elbow_plot, prefix="metrics", output_path=output_path)
+                for n_clusters, output in all_models.items():
+                    cls.export_plot(output['cluster_plot'], prefix=f"clusters_{n_clusters}", output_path=output_path)
+                    cls.export_plot(output['factor_plot'], prefix=f"factors_{n_clusters}", output_path=output_path)
 
         return all_models
+
+    @staticmethod
+    def export_plot(figure: plt.figure, prefix="figure", output_path=Path.cwd(), **kwargs):
+        timestamp = time.strftime("%Y%m%d_%Hh%Mm%Ss", time.localtime())
+        file_name = f"{prefix}_{timestamp}.png"
+
+        figure.savefig(
+            output_path / file_name,
+            **kwargs
+        )
 
     @staticmethod
     def to_excel(result_dict: dict, file_name: str = None, save_training_data=False, output_path=Path.cwd()):
@@ -155,19 +178,19 @@ class KMeansClustering:
 
     @classmethod
     def to_excel_range(cls, results: dict, save_training_data=False, output_path=Path.cwd()):
-        all_scores = []
 
         timestamp = time.strftime("%Y%m%d_%Hh%Mm%Ss", time.localtime())
-
         file_name = f"multiple_clustering_result_{timestamp}.xlsx"
 
         with pd.ExcelWriter(output_path / file_name) as writer:
 
+            all_scores = []
             for cluster_num, result in results.items():
                 data = result["data"]
                 centroids = result["centroids"]
                 scores = result["scores"]
                 scores["n_clusters"] = cluster_num
+
                 all_scores.append(scores)
 
                 if save_training_data:
