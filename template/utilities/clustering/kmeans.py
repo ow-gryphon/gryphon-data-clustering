@@ -16,8 +16,9 @@ class KMeansClustering:
 
     @classmethod
     def execute_k_means(cls, dataset, variables, num_clusters,
-                        standardize_vars=False, generate_charts=True, save_results_to_excel=False,
-                        output_path=Path.cwd() / "outputs", export_charts=False,
+                        output_path=Path.cwd() / "outputs",
+                        standardize_vars=False, generate_charts=True,
+                        save_results_to_excel=False, export_charts=False,
                         **kwargs):
         """
         Create a K-means model, fit it with data, and predict clusters on the data
@@ -29,13 +30,15 @@ class KMeansClustering:
         :param generate_charts: Whether to generate plots or not
         :param save_results_to_excel: Whether to save the clustering information into an excel file
         :param output_path: Path used to save the outputs of the function
+        :param export_charts: Whether to save plots to disc or not
 
         :return: tuple of (fitted k-means-extension model with summary information saved, warning_info)
         """
 
         if standardize_vars:
             scalar = StandardScaler().fit(dataset[variables])
-            use_data = pd.DataFrame(scalar.transform(dataset[variables].dropna()), columns=variables)
+            no_na_dataset = dataset[variables].dropna()
+            use_data = pd.DataFrame(scalar.transform(no_na_dataset), index=no_na_dataset.index, columns=variables)
 
         else:
             use_data = dataset[variables].dropna()
@@ -64,7 +67,8 @@ class KMeansClustering:
 
         output = {
             "model": fit_model,
-            "data": use_data,
+            "data": use_data.reset_index(drop=True),
+            "raw_data": use_data[["Cluster_assigned"]].join(dataset, how="outer"),
             "centroids": pd_centroids,
             "cluster_n": cluster_n,
             "scores": scores
@@ -72,7 +76,11 @@ class KMeansClustering:
 
         if generate_charts:
             # Sending model prediction to get plot information
-            cluster_plot, plot_info = visualize_clusters.tool_plot(variables, use_data, new_variable_name)
+            cluster_plot, plot_info = visualize_clusters.tool_plot(
+                variables,
+                use_data.reset_index(drop=True),
+                new_variable_name
+            )
 
             # create factor plot
             g = visualize_clusters.get_factor_plot(use_data, new_variable_name)
@@ -92,9 +100,10 @@ class KMeansClustering:
 
     @classmethod
     def k_means_range(cls, dataset: pd.DataFrame, variables: List[str],
-                      min_clusters=2, max_clusters=5, standardize_vars=False, generate_charts=True,
-                      output_path: Path = Path.cwd() / "outputs",
-                      save_results_to_excel=False, export_charts=False, **kwargs):
+                      min_clusters=2, max_clusters=5, output_path: Path = Path.cwd() / "outputs",
+                      standardize_vars=False, generate_charts=True,
+                      save_results_to_excel=False, export_charts=False,
+                      **kwargs):
         """
         Create a K-means model, fit it with data, and predict clusters on the data
 
@@ -129,7 +138,7 @@ class KMeansClustering:
             all_models[num_clusters] = k_means_model_outputs
 
         if save_results_to_excel:
-            cls.to_excel_range(all_models)
+            cls.to_excel_range(all_models, output_path=output_path)
 
         if generate_charts:
             all_scores = []
@@ -159,7 +168,7 @@ class KMeansClustering:
         )
 
     @staticmethod
-    def to_excel(result_dict: dict, file_name: str = None, save_training_data=False, output_path=Path.cwd()):
+    def to_excel(result_dict: dict, file_name: str = None, output_path=Path.cwd(), save_training_data=False):
         timestamp = time.strftime("%Y%m%d_%Hh%Mm%Ss", time.localtime())
 
         if file_name is None:
@@ -177,7 +186,7 @@ class KMeansClustering:
             scores.to_excel(writer, sheet_name='scores', index=False)
 
     @classmethod
-    def to_excel_range(cls, results: dict, save_training_data=False, output_path=Path.cwd()):
+    def to_excel_range(cls, results: dict, output_path=Path.cwd(), save_training_data=False):
 
         timestamp = time.strftime("%Y%m%d_%Hh%Mm%Ss", time.localtime())
         file_name = f"multiple_clustering_result_{timestamp}.xlsx"

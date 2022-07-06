@@ -73,7 +73,7 @@ def generate_column_name(proposed_name, frame):
     num = 1
     while proposed_name in frame.columns.values:
         num = num + 1
-        proposed_name = "{}_{}".format(orig_name, num)
+        proposed_name = f"{orig_name}_{num}"
 
     return proposed_name
 

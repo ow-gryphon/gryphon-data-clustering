@@ -196,6 +196,7 @@ def slice_3d(frame, x, y, z, cluster=None, max_points=1000, style="scatter"):
     return fig, ax, plot_data
 
 
+# PCA
 def plot_by_pc_by_cluster_top_two_dims(frame, target_prediction, other_cols_to_exclude=None):
     """
     Performs PCA and graphs the predicted clusters over the top two dimensions.
@@ -243,7 +244,7 @@ def plot_by_pc_by_cluster_top_two_dims(frame, target_prediction, other_cols_to_e
     return fig, plot_data, x_axis_label, y_axis_label, plot_title, full_output_data
 
 
-def plot_by_pc_by_cluster_top_three_dims(frame, target_prediction, other_cols_to_exclude=None):
+def plot_by_pc_by_cluster_top_three_dims(frame, target_prediction, other_cols_to_exclude: list = None):
     """
     Performs PCA and graphs the predicted clusters over the top three dimensions.
 
@@ -312,7 +313,7 @@ def plot_by_pc_by_cluster_top_three_dims(frame, target_prediction, other_cols_to
             full_output_data, res, total_var_explained)
 
 
-def plot_clusters_by_feature(frame, target_prediction, cols_to_exclude=None):
+def plot_clusters_by_feature(frame, target_prediction, cols_to_exclude: list = None):
     """
     Creates a parallel plot using predicted cluster membership.
 
@@ -346,6 +347,7 @@ def generate_mds(frame, features, n_components=2, dissimilarity="euclidean", ver
     :param dissimilarity:  ‘euclidean’ | ‘precomputed’
     :param verbose: Level of verbosity
     :param kwargs: other arguments to feed the MDS function
+
     :return: MDS_coordinates
     """
 
@@ -359,6 +361,7 @@ def num_clusters_df(frame, cluster_var_name):
     """
     :param frame: Pandas dataframe with cluster assignments
     :param cluster_var_name: variable with clusters
+
     :return: 1D array with cluster numbers
     """
     df = frame[cluster_var_name].value_counts().reset_index()
@@ -428,7 +431,7 @@ def tool_plot(var_names, model_with_prediction, new_variable_name):
                                               cluster=new_variable_name, max_points=1000, style="scatter")
             temp_data_info["axes_labels"] = {"x_axis_label": var_names[0]}
         # Common attributes across 3 or less variables
-        temp_data_info["plot_type"] = "{}D scatter".format(num_dim)
+        temp_data_info["plot_type"] = f"{num_dim}D scatter"
 
     return my_plot, temp_data_info
 
