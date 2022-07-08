@@ -7,6 +7,7 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import MDS
 
 
+# PLOTS
 def slice_1d(frame, x, cluster=None, max_points=1000, style="scatter"):
     """
     Slice multidimensional data along axes into 1 dimension for simple plotting purposes
@@ -196,7 +197,142 @@ def slice_3d(frame, x, y, z, cluster=None, max_points=1000, style="scatter"):
     return fig, ax, plot_data
 
 
-# PCA
+def plot_clusters_by_feature(frame, target_prediction, cols_to_exclude: list = None):
+    """
+    Creates a parallel plot using predicted cluster membership.
+
+    :param frame: A Pandas DataFrame.
+    :param target_prediction: Name of the predicted class membership column.
+    :param cols_to_exclude: List or single value of columns to exclude.  Preferably one
+        should exclude the original target column.
+    :return: A matplotlib.pyplot object.
+    """
+
+    if cols_to_exclude is not None:
+        trimmed_frame = frame[[col for col in frame.columns if col not in cols_to_exclude]]
+    else:
+        trimmed_frame = frame
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+    parallel_coordinates(trimmed_frame, target_prediction)
+    ax.set_ylabel('Feature Value')
+    labels = ax.get_xticklabels()
+    ax.set_xticklabels(labels, rotation=90)
+    ax.set_title('Feature Value by Cluster and by Feature')
+
+    return fig, ax, trimmed_frame
+
+
+def clustering_scatter_plot(var_names, model_with_prediction, new_variable_name):
+    """
+        Returns temp_data_info, my_plot
+
+        :return: dictionary of plot information for k-means, plot object
+    """
+    temp_data_info = dict()
+    num_dim = len(var_names)
+
+    # Call PCA plotting if more than 3 variables
+    if num_dim > 3:
+        my_plot, plot_data, x_axis_label, y_axis_label, z_axis_label, plot_title, full_data, res, total_var_explained \
+            = plot_by_pc_by_cluster_top_three_dims(model_with_prediction, new_variable_name)
+        temp_data_info["plot_type"] = "3D scatter"
+        temp_data_info["res"] = res
+        temp_data_info["total_var_explained"] = total_var_explained
+        temp_data_info["axes_labels"] = {
+            "x_axis_label": x_axis_label,
+            "y_axis_label": y_axis_label,
+            "z_axis_label": z_axis_label
+        }
+
+    # Call plotting based on number of variables
+    else:
+        if num_dim == 3:
+            my_plot, ax, plot_data = slice_3d(model_with_prediction, var_names[0], var_names[1], var_names[2],
+                                              cluster=new_variable_name, max_points=1000, style="scatter")
+
+            temp_data_info["axes_labels"] = {
+                "x_axis_label": var_names[0],
+                "y_axis_label": var_names[1],
+                "z_axis_label": var_names[2]
+            }
+
+        elif num_dim == 2:
+            my_plot, ax, plot_data = slice_2d(model_with_prediction, var_names[0], var_names[1],
+                                              cluster=new_variable_name, max_points=1000, style="scatter")
+
+            temp_data_info["axes_labels"] = {
+                "x_axis_label": var_names[0],
+                "y_axis_label": var_names[1]
+            }
+        else:
+            my_plot, ax, plot_data = slice_1d(model_with_prediction, var_names[0],
+                                              cluster=new_variable_name, max_points=1000, style="scatter")
+            temp_data_info["axes_labels"] = {"x_axis_label": var_names[0]}
+        # Common attributes across 3 or less variables
+        temp_data_info["plot_type"] = f"{num_dim}D scatter"
+
+    return my_plot, temp_data_info
+
+
+def factor_plot(data, new_variable_name):
+    """
+    Returns factor plot
+
+    :param data: data
+    :param new_variable_name: name of column containing the predicted clusters
+
+    :return: g, containing the factor_plot
+    """
+    df_long = pd.melt(data, new_variable_name, var_name="Variable Names", value_name="Value")
+
+    g = sns.catplot(
+        data=df_long, x="Variable Names", y="Value",
+        kind="box", hue=new_variable_name,
+        height=8, aspect=1.9, fliersize=1, sym='.',
+        palette=get_ow_palette(), legend=False
+    )
+    plt.legend(title="Cluster number", loc='upper left')
+    g.set_xticklabels(rotation=45, ha="right")
+
+    return g
+
+
+def elbow_plot(scores: pd.DataFrame):
+    """
+    Function that plots the results clustering scores versus the number of clusters used.
+    Useful for determining the number of clusters for algorithms with a priori defined
+    number of clusters (i.e. K-Means)
+
+    :param scores: A pandas DataFrame where each of the columns represents some clustering score
+        and each line is related to a certain number of clusters considered.
+        The DataFrame should have also one mandatory column called n_clusters.
+
+    :return: None
+    """
+    assert "n_clusters" in scores.columns, "Required column \"n_clusters\" is not present in the DataFrame"
+
+    n_clusters = scores["n_clusters"]
+    metrics = scores.drop(columns=["n_clusters"])
+
+    fig, axis = plt.subplots(1, len(metrics.columns), figsize=(24, 7), sharex='all')
+    fig.suptitle("Metrics vs Number of clusters")
+
+    for m, ax in zip(metrics, axis):
+
+        ax.plot(n_clusters, scores[m])
+        ax.scatter(n_clusters, scores[m])
+
+        ax.set_title(f"Metric: {m}")
+        ax.set_ylabel("Metric score")
+        ax.set_xlabel("Number of clusters")
+        ax.set_xticks(n_clusters)
+        ax.grid()
+
+    return fig
+
+
+# PCA PLOTS
 def plot_by_pc_by_cluster_top_two_dims(frame, target_prediction, other_cols_to_exclude=None):
     """
     Performs PCA and graphs the predicted clusters over the top two dimensions.
@@ -313,32 +449,6 @@ def plot_by_pc_by_cluster_top_three_dims(frame, target_prediction, other_cols_to
             full_output_data, res, total_var_explained)
 
 
-def plot_clusters_by_feature(frame, target_prediction, cols_to_exclude: list = None):
-    """
-    Creates a parallel plot using predicted cluster membership.
-
-    :param frame: A Pandas DataFrame.
-    :param target_prediction: Name of the predicted class membership column.
-    :param cols_to_exclude: List or single value of columns to exclude.  Preferably one
-        should exclude the original target column.
-    :return: A matplotlib.pyplot object.
-    """
-
-    if cols_to_exclude is not None:
-        trimmed_frame = frame[[col for col in frame.columns if col not in cols_to_exclude]]
-    else:
-        trimmed_frame = frame
-
-    fig, ax = plt.subplots(figsize=(10, 8))
-    parallel_coordinates(trimmed_frame, target_prediction)
-    ax.set_ylabel('Feature Value')
-    labels = ax.get_xticklabels()
-    ax.set_xticklabels(labels, rotation=90)
-    ax.set_title('Feature Value by Cluster and by Feature')
-
-    return fig, ax, trimmed_frame
-
-
 def generate_mds(frame, features, n_components=2, dissimilarity="euclidean", verbose=1, **kwargs):
     """
     :param frame: A Pandas DataFrame.
@@ -382,112 +492,3 @@ def get_ow_palette():
     ]
 
     return ow_palette
-
-
-def tool_plot(var_names, model_with_prediction, new_variable_name):
-    """
-        Returns temp_data_info, my_plot
-
-        :return: dictionary of plot information for k-means, plot object
-    """
-    temp_data_info = dict()
-    num_dim = len(var_names)
-
-    # Call PCA plotting if more than 3 variables
-    if num_dim > 3:
-        my_plot, plot_data, x_axis_label, y_axis_label, z_axis_label, plot_title, full_data, res, total_var_explained \
-            = plot_by_pc_by_cluster_top_three_dims(model_with_prediction, new_variable_name)
-        temp_data_info["plot_type"] = "3D scatter"
-        temp_data_info["res"] = res
-        temp_data_info["total_var_explained"] = total_var_explained
-        temp_data_info["axes_labels"] = {
-            "x_axis_label": x_axis_label,
-            "y_axis_label": y_axis_label,
-            "z_axis_label": z_axis_label
-        }
-
-    # Call plotting based on number of variables
-    else:
-        if num_dim == 3:
-            my_plot, ax, plot_data = slice_3d(model_with_prediction, var_names[0], var_names[1], var_names[2],
-                                              cluster=new_variable_name, max_points=1000, style="scatter")
-
-            temp_data_info["axes_labels"] = {
-                "x_axis_label": var_names[0],
-                "y_axis_label": var_names[1],
-                "z_axis_label": var_names[2]
-            }
-
-        elif num_dim == 2:
-            my_plot, ax, plot_data = slice_2d(model_with_prediction, var_names[0], var_names[1],
-                                              cluster=new_variable_name, max_points=1000, style="scatter")
-
-            temp_data_info["axes_labels"] = {
-                "x_axis_label": var_names[0],
-                "y_axis_label": var_names[1]
-            }
-        else:
-            my_plot, ax, plot_data = slice_1d(model_with_prediction, var_names[0],
-                                              cluster=new_variable_name, max_points=1000, style="scatter")
-            temp_data_info["axes_labels"] = {"x_axis_label": var_names[0]}
-        # Common attributes across 3 or less variables
-        temp_data_info["plot_type"] = f"{num_dim}D scatter"
-
-    return my_plot, temp_data_info
-
-
-def get_factor_plot(data, new_variable_name):
-    """
-    Returns factor plot
-
-    :param data: data
-    :param new_variable_name: name of column containing the predicted clusters
-
-    :return: g, containing the factor_plot
-    """
-    df_long = pd.melt(data, new_variable_name, var_name="Variable Names", value_name="Value")
-
-    g = sns.catplot(
-        data=df_long, x="Variable Names", y="Value",
-        kind="box", hue=new_variable_name,
-        height=8, aspect=1.9, fliersize=1, sym='.',
-        palette=get_ow_palette(), legend=False
-    )
-    plt.legend(title="Cluster number", loc='upper left')
-    g.set_xticklabels(rotation=45, ha="right")
-
-    return g
-
-
-def get_elbow_plot(scores: pd.DataFrame):
-    """
-    Function that plots the results clustering scores versus the number of clusters used.
-    Useful for determining the number of clusters for algorithms with a priori defined
-    number of clusters (i.e. K-Means)
-
-    :param scores: A pandas DataFrame where each of the columns represents some clustering score
-        and each line is related to a certain number of clusters considered.
-        The DataFrame should have also one mandatory column called n_clusters.
-
-    :return: None
-    """
-    assert "n_clusters" in scores.columns, "Required column \"n_clusters\" is not present in the DataFrame"
-
-    n_clusters = scores["n_clusters"]
-    metrics = scores.drop(columns=["n_clusters"])
-
-    fig, axis = plt.subplots(1, len(metrics.columns), figsize=(24, 7), sharex='all')
-    fig.suptitle("Metrics vs Number of clusters")
-
-    for m, ax in zip(metrics, axis):
-
-        ax.plot(n_clusters, scores[m])
-        ax.scatter(n_clusters, scores[m])
-
-        ax.set_title(f"Metric: {m}")
-        ax.set_ylabel("Metric score")
-        ax.set_xlabel("Number of clusters")
-        ax.set_xticks(n_clusters)
-        ax.grid()
-
-    return fig
