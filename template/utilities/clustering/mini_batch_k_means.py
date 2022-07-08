@@ -50,7 +50,7 @@ class MiniBatchKMeansClustering:
 
         output = {
             "model": k_means_model,
-            "data": dataset.reset_index(drop=True),
+            "data": dataset,  # .reset_index(drop=True),
             "raw_data": dataset[["Cluster_assigned"]].join(data, how="outer")
         }
 
@@ -114,10 +114,11 @@ class MiniBatchKMeansClustering:
 
         output_models = dict()
 
-        for cluster_num in range(min_clusters, max_clusters + 1):
+        for num_clusters in range(min_clusters, max_clusters + 1):
+            print(f"Working on {num_clusters} clusters")
 
             k_means_model = cls.execute_mini_batch_k_means(
-                data, variables, cluster_num,
+                data, variables, num_clusters,
                 output_path=output_path,
                 standardize_vars=standardize_vars,
                 generate_charts=generate_charts,
@@ -127,7 +128,7 @@ class MiniBatchKMeansClustering:
             )
 
             if k_means_model is not None:
-                output_models[cluster_num] = k_means_model
+                output_models[num_clusters] = k_means_model
 
         if export_charts:
             pass

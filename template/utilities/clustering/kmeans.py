@@ -16,6 +16,7 @@ class KMeansClustering:
                         output_path=Path.cwd() / "outputs",
                         standardize_vars=False, generate_charts=True,
                         save_results_to_excel=False, export_charts=False,
+                        save_training_data=False,
                         **kwargs):
         """
         Create a K-means model, fit it with data, and predict clusters on the data
@@ -27,6 +28,8 @@ class KMeansClustering:
         :param generate_charts: Whether to generate plots or not
         :param save_results_to_excel: Whether to save the clustering information into an excel file
         :param output_path: Path used to save the outputs of the function
+        :param save_training_data: Save training data into the excel. Only applicable when
+        `save_results_to_excel` is set to True
         :param export_charts: Whether to save plots to disc or not
 
         :return: tuple of (fitted k-means-extension model with summary information saved, warning_info)
@@ -56,7 +59,7 @@ class KMeansClustering:
 
         output = {
             "model": k_means_model,
-            "data": use_data.reset_index(drop=True),
+            "data": use_data,  # .reset_index(drop=True),
             "raw_data": use_data[["Cluster_assigned"]].join(data, how="outer"),
             "centroids": pd_centroids,
             "cluster_n": cluster_n,
@@ -79,7 +82,7 @@ class KMeansClustering:
             output['factor_plot'] = g
 
             if save_results_to_excel:
-                clustering_utilities.to_excel(output, output_path=output_path)
+                clustering_utilities.to_excel(output, output_path=output_path, save_training_data=save_training_data)
 
             if export_charts:
                 clustering_utilities.export_plot(output['cluster_plot'], prefix="clusters", output_path=output_path)
@@ -92,6 +95,7 @@ class KMeansClustering:
                       min_clusters=2, max_clusters=5, output_path: Path = Path.cwd() / "outputs",
                       standardize_vars=False, generate_charts=True,
                       save_results_to_excel=False, export_charts=False,
+                      save_training_data=False,
                       **kwargs):
         """
         Create a K-means model, fit it with data, and predict clusters on the data
@@ -104,6 +108,8 @@ class KMeansClustering:
         :param generate_charts: Whether to generate plots or not
         :param save_results_to_excel: Whether to save the clustering information into an excel file
         :param output_path: Path used to save the outputs of the function
+        :param save_training_data: Save training data into the excel. Only applicable when
+        `save_results_to_excel` is set to True
         :param export_charts: Whether to save plots to disc or not
 
         :return: Warning_info for any errors in the run, and also saves a .json with summary information
@@ -127,7 +133,11 @@ class KMeansClustering:
             all_models[num_clusters] = k_means_model_outputs
 
         if save_results_to_excel:
-            clustering_utilities.to_excel_range(all_models, output_path=output_path)
+            clustering_utilities.to_excel_range(
+                all_models,
+                output_path=output_path,
+                save_training_data=save_training_data
+            )
 
         if generate_charts:
             all_scores = []
