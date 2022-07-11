@@ -5,6 +5,8 @@ from pathlib import Path
 import pandas as pd
 from sklearn.cluster import MiniBatchKMeans
 
+from . import pre_processing
+from . import evaluation
 from . import clustering_utilities
 from . import visualize_clusters
 
@@ -36,7 +38,7 @@ class MiniBatchKMeansClustering:
         """
 
         if standardize_vars:
-            dataset = clustering_utilities.standardize_variables(data[variables])
+            dataset = pre_processing.standardize_variables(data[variables])
         else:
             dataset = data[variables]
 
@@ -77,7 +79,7 @@ class MiniBatchKMeansClustering:
         pd_centroids["Cluster Number"] = pd_centroids.index
 
         cluster_n = visualize_clusters.num_clusters_df(dataset, new_variable_name)
-        scores = clustering_utilities.score_all(dataset.drop(columns=[new_variable_name]), prediction)
+        scores = evaluation.score_all(dataset.drop(columns=[new_variable_name]), prediction)
 
         output.update({
             'centroids': pd_centroids,

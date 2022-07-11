@@ -5,6 +5,8 @@ from typing import List
 import pandas as pd
 from sklearn.cluster import KMeans
 
+from . import pre_processing
+from . import evaluation
 from . import clustering_utilities
 from . import visualize_clusters
 
@@ -36,7 +38,7 @@ class KMeansClustering:
         """
 
         if standardize_vars:
-            use_data = clustering_utilities.standardize_variables(data[variables])
+            use_data = pre_processing.standardize_variables(data[variables])
         else:
             use_data = data[variables].dropna()
 
@@ -44,7 +46,7 @@ class KMeansClustering:
         k_means_model = KMeans(n_clusters=num_clusters, **kwargs)
         prediction = k_means_model.fit_predict(use_data.reset_index(drop=True))
 
-        new_variable_name = clustering_utilities.generate_column_name("Cluster_assigned", use_data)
+        new_variable_name = pre_processing.generate_column_name("Cluster_assigned", use_data)
         use_data[new_variable_name] = prediction
 
         pd_centroids = pd.DataFrame(k_means_model.cluster_centers_)
@@ -55,7 +57,7 @@ class KMeansClustering:
         cluster_n = visualize_clusters.num_clusters_df(use_data, new_variable_name)
 
         # Set train metrics
-        scores = clustering_utilities.score_all(use_data.drop(columns=new_variable_name), use_data[new_variable_name])
+        scores = evaluation.score_all(use_data.drop(columns=new_variable_name), use_data[new_variable_name])
 
         output = {
             "model": k_means_model,
