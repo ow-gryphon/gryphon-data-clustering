@@ -4,7 +4,7 @@
     "dependencies": [],
 
     "keywords": ["clustering", "cluster", "unsupervised", "unsupervised learning", "kmeans"],
-    "methodology": [],
+    "methodology": ["Clustering"],
     "topic": [],
 
     "description": "This template contains quickstart code to make clustering analysis based on the OW Mercury tool.\n",
