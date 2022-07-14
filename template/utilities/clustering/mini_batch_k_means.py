@@ -5,10 +5,11 @@ from pathlib import Path
 import pandas as pd
 from sklearn.cluster import MiniBatchKMeans
 
-from . import pre_processing
-from . import evaluation
-from . import clustering_utilities
-from . import visualize_clusters
+from .utilities import evaluation
+from .utilities import visualize_clusters
+from .utilities import clustering_utilities
+from .utilities import pre_processing
+from .utilities import file_utilities
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ class MiniBatchKMeansClustering:
 
         # Fit the model
         prediction = k_means_model.fit_predict(dataset)
-        new_variable_name = clustering_utilities.generate_column_name("Cluster_assigned", dataset)
+        new_variable_name = "Cluster_assigned"
         dataset[new_variable_name] = prediction
 
         output = {
@@ -68,8 +69,8 @@ class MiniBatchKMeansClustering:
             output['factor_plot'] = factor_plot
 
             if export_charts:
-                clustering_utilities.export_plot(cluster_plot, prefix="clusters", output_path=output_path)
-                clustering_utilities.export_plot(factor_plot, prefix="factors", output_path=output_path)
+                file_utilities.export_plot(cluster_plot, prefix="clusters", output_path=output_path)
+                file_utilities.export_plot(factor_plot, prefix="factors", output_path=output_path)
 
             # close out plt to save memory
             # plt.close('all')
@@ -97,7 +98,8 @@ class MiniBatchKMeansClustering:
             cls, data, variables, min_clusters=2, max_clusters=5,
             output_path=Path.cwd() / "outputs",
             standardize_vars=False, generate_charts=True, save_results_to_excel=False, export_charts=False,
-            **kwargs):
+            **kwargs
+    ):
         """
         Create a MiniBatchKMeans model, fit it with data, and predict clusters on the data
 

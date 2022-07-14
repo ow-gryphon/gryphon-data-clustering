@@ -5,10 +5,11 @@ from typing import List
 import pandas as pd
 from sklearn.cluster import KMeans
 
-from . import pre_processing
-from . import evaluation
-from . import clustering_utilities
-from . import visualize_clusters
+from .utilities import evaluation
+from .utilities import visualize_clusters
+from .utilities import clustering_utilities
+from .utilities import file_utilities
+from .utilities import pre_processing
 
 
 class KMeansClustering:
@@ -46,7 +47,7 @@ class KMeansClustering:
         k_means_model = KMeans(n_clusters=num_clusters, **kwargs)
         prediction = k_means_model.fit_predict(use_data.reset_index(drop=True))
 
-        new_variable_name = pre_processing.generate_column_name("Cluster_assigned", use_data)
+        new_variable_name = "Cluster_assigned"
         use_data[new_variable_name] = prediction
 
         pd_centroids = pd.DataFrame(k_means_model.cluster_centers_)
@@ -87,8 +88,8 @@ class KMeansClustering:
                 clustering_utilities.to_excel(output, output_path=output_path, save_training_data=save_training_data)
 
             if export_charts:
-                clustering_utilities.export_plot(output['cluster_plot'], prefix="clusters", output_path=output_path)
-                clustering_utilities.export_plot(output['factor_plot'], prefix="factors", output_path=output_path)
+                file_utilities.export_plot(output['cluster_plot'], prefix="clusters", output_path=output_path)
+                file_utilities.export_plot(output['factor_plot'], prefix="factors", output_path=output_path)
 
         return output
 

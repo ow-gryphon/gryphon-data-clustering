@@ -1,4 +1,1 @@
-scikit-learn
-pandas
-numpy
-seaborn
+gryphon-dimensionality-reduction
