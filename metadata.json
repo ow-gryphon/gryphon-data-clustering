@@ -1,14 +1,14 @@
 {
     "display_name": "Data clustering",
     "command": "generate",
-    "dependencies": [],
+    "dependencies": [pandas, scipy, scikit-learn, numpy],
 
     "keywords": ["clustering", "cluster", "unsupervised", "unsupervised learning", "kmeans"],
     "methodology": ["Clustering"],
     "topic": [],
 
     "description": "This template provides data clustering capabilities, adapted from OW's Sphinx tool. Currently it only provides K-means capabilities. For more, use the Sphinx tool (click on 'read more')",
-    "read_more_link": "https://github.com/ow-gryphon/gryphon-data-clustering/"
+    "read_more_link": "https://github.com/ow-gryphon/gryphon-data-clustering/",
     "author": "Daniel Wang and Vittor Pereira",
     "author_email": "daniel.wang@oliverwyman.com"
 }
