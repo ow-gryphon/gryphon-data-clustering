@@ -1,7 +1,7 @@
 {
     "display_name": "Data clustering",
     "command": "generate",
-    "dependencies": [pandas, scipy, scikit-learn, numpy],
+    "dependencies": ["pandas", "scipy", "scikit-learn", "numpy"],
 
     "keywords": ["clustering", "cluster", "unsupervised", "unsupervised learning", "kmeans"],
     "methodology": ["Clustering"],
