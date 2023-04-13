@@ -39,7 +39,7 @@ def execute_k_means(data: pd.DataFrame, variables: List[str], num_clusters: int,
         scaler = None
 
     # Create a model based on loaded_dataset (need col names to be string)
-    k_means_model = KMeans(n_clusters=num_clusters, **kwargs)
+    k_means_model = KMeans(n_clusters=num_clusters, n_init='auto', **kwargs)
     prediction = k_means_model.fit_predict(use_data.reset_index(drop=True))
 
     new_variable_name = "Cluster_assigned"

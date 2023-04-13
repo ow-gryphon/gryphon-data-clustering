@@ -35,7 +35,7 @@ def execute_mini_batch_k_means(
         dataset = data[variables]
         scaler = None
 
-    k_means_model = MiniBatchKMeans(n_clusters=num_clusters, **kwargs)
+    k_means_model = MiniBatchKMeans(n_clusters=num_clusters, n_init='auto', **kwargs)
     # TODO: random_state=get_random_state()
 
     # Fit the model
