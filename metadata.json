@@ -1,19 +1,13 @@
 {
     "display_name": "Data clustering",
     "command": "generate",
-    "dependencies": ["notebook==6.5.4", 
-	             "qtconsole==5.4.2", 
-		     "jupyter-console==6.6.3",
-		     "nbconvert==7.3.1",
-		     "ipykernel==6.22.0",
-		     "ipywidgets==8.0.6",
-		     "pandas",
+    "dependencies": ["pandas",
 		     "scipy", 
 		     "scikit-learn", 
 		     "numpy"],
 
     "keywords": ["clustering", "cluster", "unsupervised", "unsupervised learning", "kmeans"],
-    "methodology": ["Clustering"],
+    "methodology": ["Clustering", "Clustering and Factor Analysis"],
     "topic": [],
 
     "description": "This template provides data clustering capabilities, adapted from OW's Sphinx tool. Currently it only provides K-means capabilities. For more, use the Sphinx tool (click on 'read more')",
